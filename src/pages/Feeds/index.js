@@ -517,8 +517,10 @@ export default function Feeds() {
                       <Avatar circle src={list.avatarUrl} alt="@" size="lg" />
                     </th>
 
-                    <td onClick={() => show()}>{list?.titulo}</td>
-                    <td onClick={() => show()}>{list?.subTitulo}</td>
+                    <td onClick={() => modalParseData(list)}>{list?.titulo}</td>
+                    <td onClick={() => modalParseData(list)}>
+                      {list?.subTitulo}
+                    </td>
 
                     <td>
                       <Button

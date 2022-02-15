@@ -276,28 +276,31 @@ export default function Eventos() {
       <div className="modal-container">
         <Modal full show={open} onClose={handleClose} onHide={handleOpen}>
           <Modal.Header>
-            <Modal.Title>Eventos Details</Modal.Title>
+            <Modal.Title>Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div class="card text-center">
-              <div class="card-header"> </div>
-              <div class="card-body">
-                <div className="col">
-                  <figure class="figure">
-                    <img
-                      src={modalTempData.avatarUrl}
-                      class="figure-img img-fluid rounded"
-                      alt="..."
-                    />
-                    <figcaption class="figure-caption"></figcaption>
-                  </figure>
+            <div class="card mb-3" style={{ maxWidth: 540 }}>
+              <div class="row g-0">
+                <div class="col-md-4">
+                  <img
+                    style={{ width: 540, height: 150 }}
+                    src={modalTempData?.avatarUrl}
+                    class="img-fluid rounded-start"
+                    alt="..."
+                  />
+                </div>
+                <div class="col-md-8">
                   <div class="card-body">
-                    <h2 class="card-title">{modalTempData?.eventoNome}</h2>
-                    <p class="card-text">{modalTempData?.description}</p>
+                    <h5 class="card-title">{modalTempData?.eventoNome}</h5>
+                    <p class="card-text">{modalTempData?.local}</p>
+                    <p class="card-text">{modalTempData?.dia}</p>
+                    <p class="card-text">{modalTempData?.horario} hrs</p>
+                    <p class="card-text">
+                      <small class="text-muted">Last updated 3 mins ago</small>
+                    </p>
                   </div>
                 </div>
               </div>
-              <div class="card-footer text-muted">2 days ago</div>
             </div>
           </Modal.Body>{" "}
           <Modal.Footer>
@@ -309,7 +312,7 @@ export default function Eventos() {
               Fechar
             </Button>
             <Button color="red" appearance="primary" onClick={() => {}}>
-              Deletar Live
+              Deletar
             </Button>
           </Modal.Footer>
         </Modal>
@@ -523,10 +526,14 @@ export default function Eventos() {
                       <Avatar circle src={list.avatarUrl} alt="@" size="lg" />
                     </th>
 
-                    <td onClick={() => show()}>{list?.eventoNome}</td>
-                    <td onClick={() => show()}>{list?.local}</td>
-                    <td onClick={() => show()}>{list?.horario}</td>
-                    <td onClick={() => show()}>{list?.dia}</td>
+                    <td onClick={() => modalParseData(list)}>
+                      {list?.eventoNome}
+                    </td>
+                    <td onClick={() => modalParseData(list)}>{list?.local}</td>
+                    <td onClick={() => modalParseData(list)()}>
+                      {list?.horario}
+                    </td>
+                    <td onClick={() => modalParseData(list)()}>{list?.dia}</td>
 
                     <td>
                       <Button

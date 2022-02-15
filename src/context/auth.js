@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -23,11 +24,13 @@ export const AuthProvider = ({ children }) => {
         const uid = user.uid;
 
         console.log(user);
+        setLoading(false);
         // ...
       } else {
         // User is signed out
         // ...
         setUser(false);
+        setLoading(false);
       }
     });
   }, []);
