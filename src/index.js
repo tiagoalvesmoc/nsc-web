@@ -12,7 +12,7 @@ import { AuthProvider } from "./context/auth";
 ReactDOM.render(
   <Provider store={store}>
     <AuthProvider>
-      <Routes />
+      <SignIn />
     </AuthProvider>
   </Provider>,
 
