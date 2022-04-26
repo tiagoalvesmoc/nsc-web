@@ -8,24 +8,20 @@ import {
   getFirestore,
   getDocs,
   doc,
-  deleteDoc,
   updateDoc,
   arrayUnion,
   arrayRemove,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import {
   getStorage,
-  uploadBytes,
+  deleteObject,
   uploadBytesResumable,
   ref,
   getDownloadURL,
-  listAll,
-  list,
 } from "firebase/storage";
 import { uuid } from "uuidv4";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 import {
   Button,
@@ -37,20 +33,15 @@ import {
   Notification,
 } from "rsuite";
 
-export default function Feeds() {
-  const message = (
-    <div className="notification-container">
-      <Notification closable type="info"></Notification>
-      <Notification closable type="info" header="Informational"></Notification>
-    </div>
-  );
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
+export default function SpotLight() {
   const [uid, setUid] = useState(uuid());
-  const [preview, setPreview] = useState({});
 
-  const [liderAvatar, setLiderAvatar] = useState([]);
+  const [imagesSpotLight, setImageSpotLight] = useState([]);
 
-  const [listEvents, setListEvents] = useState([]);
+  const [listLider, setListLider] = useState([]);
   const [component, setComponents] = useState({
     disable: false,
     loading: false,
@@ -66,34 +57,42 @@ export default function Feeds() {
   const [openDrawer, setOpenDrawer] = useState(false);
 
   const [userData, setUserData] = useState(false);
-  const [open, setOpen] = useState(false);
   const [modalTempData, setModalTempData] = useState({});
-  const [id, setId] = useState(uuid());
-  const [newEventoData, setNewEventoData] = useState({
-    titulo: "",
-    subTitulo: "",
-    urlYouTube: "",
-    description: "",
 
-    idEventosImages: uid,
-    imagesEventos: [],
+  const [spotlight, setSpotlight] = useState({
+    title: "",
+    subtitle: "",
+    description: "",
+    data: "",
+    hour: "",
+    contact: "",
+    access: "",
+    id: uid,
+    banner: "",
+    imagesSpotLight: [],
   });
 
   useEffect(() => {
     setLoading(true);
 
     const app = initializeApp(firebaseConfig);
-    const liderColection = collection(getFirestore(), "feeds");
+    const liderColection = collection(getFirestore(), "spotlight");
 
-    const getEvents = async () => {
+    const getLider = async () => {
       const data = await getDocs(liderColection);
-      setListEvents(data.docs.map((doc) => ({ ...doc.data() })));
+      setListLider(data.docs.map((doc) => ({ ...doc.data() })));
 
       setLoading(false);
     };
 
-    getEvents();
+    getLider();
   }, [loadPage]);
+
+  const updateLider = () => {
+    console.log(setSpotlight);
+
+    window.location.reload();
+  };
 
   //function **********************************//
 
@@ -101,58 +100,23 @@ export default function Feeds() {
     // //-> String Original.
     // return str[0].toUpperCase() + str.substr(1);
 
-    var subst = str.toLowerCase().replace(/(?:^|\s)\S/g, function (a) {
+    var subst = str?.toLowerCase().replace(/(?:^|\s)\S/g, function (a) {
       return a.toUpperCase();
     });
     return subst;
   }
 
-  function show(data) {
+  function showModalData(data) {
+    setModalTempData(data);
     setOpenModal(true);
   }
+  const handleOpen = () => setOpenModal(!openModal);
+  const handleClose = () => setOpenModal(false);
 
   function showDrawer(data, title) {
     setOpenDrawer(true);
     setUserData({ ...data, title: title });
   }
-
-  const handlerEventoBanner = (e) => {
-    var reader = new FileReader();
-
-    // reader.onload = () => {
-    //     if (reader.readyState === 2) {
-    //         setPreview(reader.result)
-
-    //     }
-    //     reader.readAsDataURL(e.target.files[0])
-    // }
-
-    for (let i = 0; i < e.target.files.length; i++) {
-      const newImage = e.target.files[i];
-      newImage["id"] = Math.random();
-      setLiderAvatar((prevState) => [...prevState, newImage]);
-    }
-  };
-
-  const deleteLive = async () => {
-    // [START delete_document]
-
-    deleteDoc(doc(getFirestore(), "feeds", modalTempData?.idEventosImages))
-      .then(() => {
-        setOpen(false);
-        notify("success", "Wow..");
-        setTimeout(() => {
-          window.location.reload();
-        }, 2500);
-      })
-      .catch((err) => {
-        notify("error", "Wrong...");
-        setTimeout(() => {
-          window.location.reload();
-        }, 2500);
-      });
-    // [END delete_document]
-  };
 
   const handleUpload = async () => {
     setLoading(true);
@@ -160,16 +124,16 @@ export default function Feeds() {
     const storage = getStorage();
 
     const promisesAvatar = [];
+    const promisescelulasImage = [];
 
-    // INCIANDO UPLOAD IMAGENS DOS EVENTOS
-
-    liderAvatar.map((image) => {
-      const storageRefEventos = ref(
+    //Subindo imagem avatar Lider
+    imagesSpotLight.map((image) => {
+      const storageRefLiderAvatar = ref(
         storage,
-        `feeds/${newEventoData.idEventosImages}/${uuid()}`
+        `spotlight/${spotlight.id}/${spotlight.id}`
       );
       const uploadTaskLiderAvatar = uploadBytesResumable(
-        storageRefEventos,
+        storageRefLiderAvatar,
         image
       );
       promisesAvatar.push(uploadTaskLiderAvatar);
@@ -181,9 +145,7 @@ export default function Feeds() {
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgressUpload(progress);
           setComponents({ ...component, title: "Uploading.." });
-          console.log(
-            " INCIANDO UPLOAD IMAGENS DOS EVENTOS " + progress + "% done"
-          );
+          // console.log("Upload avatar " + progress + "% done");
         },
 
         (error) => {
@@ -193,40 +155,26 @@ export default function Feeds() {
         () => {
           getDownloadURL(uploadTaskLiderAvatar.snapshot.ref)
             .then((downloadURL) => {
-              setOpenDrawer(false);
+              const user = doc(getFirestore(), "spotlight/", spotlight.id);
 
-              const user = doc(
-                getFirestore(),
-                "feeds/",
-                newEventoData.idEventosImages
-              );
-
-              setDoc(
-                doc(getFirestore(), "feeds", newEventoData.idEventosImages),
-                newEventoData
-              );
+              setDoc(doc(getFirestore(), "spotlight", spotlight.id), spotlight);
 
               const frankDocRef = doc(
                 getFirestore(),
-                "feeds",
-                newEventoData.idEventosImages
+                "spotlight",
+                spotlight.id
               );
               updateDoc(frankDocRef, {
-                avatarUrl: downloadURL,
-              })
-                .then(() => {
-                  setProgressUpload(0);
-                  setLoadPage(!loadPage);
-                  notify("success", "success");
-                  // window.location.reload()
-                })
-                .catch((err) => {
-                  notify("error", err);
-                  alert(err);
-                });
+                banner: downloadURL,
+              });
+
+              setProgressUpload(0);
+              setImageSpotLight([]);
+              setLoadPage(!loadPage);
+              setOpenDrawer(false);
+              // setLoading(false)
             })
             .catch((err) => {
-              notify("error", err);
               console.log(err);
               setLoadPage(!loadPage);
               return;
@@ -234,24 +182,33 @@ export default function Feeds() {
         }
       );
     });
+  };
 
-    // FIM DO UPLOAD E CADASTRO DO EVENTO
+  const deleteSpotLight = async (id) => {
+    // [START delete_document]
 
-    Promise.all(promisesAvatar)
+    console.log(id);
+
+    deleteDoc(doc(getFirestore(), "spotlight", id))
       .then(() => {
-        console.log("  images uploaded");
-        setLiderAvatar([]);
-      })
-      .catch((err) => console.log(err));
-  };
+        const deleteStorage = ref(getStorage(), `spotlight/${id}/${id}`);
+        deleteObject(deleteStorage)
+          .then(() => {
+            notify("success", "Wow...");
+            setLoadPage(!loadPage);
+          })
 
-  const modalParseData = (list) => {
-    console.log(list);
-    setModalTempData(list);
-    handleOpen();
+          .catch((error) => {
+            notify("error", " Wrong...");
+            setLoadPage(!loadPage);
+          });
+      })
+      .catch((err) => {
+        notify("error", " Wrong...");
+        setLoadPage(!loadPage);
+      });
+    // [END delete_document]
   };
-  const handleOpen = () => setOpen(!open);
-  const handleClose = () => setOpen(false);
 
   const notify = (type, message) => {
     setOpenDrawer(false);
@@ -270,13 +227,12 @@ export default function Feeds() {
         break;
     }
   };
-
   return (
     <div className="col p-5 overflow-auto h-100">
       <div className="modal-container">
-        <Modal full show={open} onClose={handleClose} onHide={handleOpen}>
+        <Modal full show={openModal} onClose={handleClose} onHide={handleOpen}>
           <Modal.Header>
-            <Modal.Title>Feeds Details</Modal.Title>
+            <Modal.Title>SpotLight Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div class="card mb-3" style={{ maxWidth: 540 }}>
@@ -284,14 +240,14 @@ export default function Feeds() {
                 <div class="col-md-4">
                   <img
                     style={{ width: 540, height: 150 }}
-                    src={modalTempData?.avatarUrl}
+                    src={modalTempData.banner}
                     class="img-fluid rounded-start"
                     alt="..."
                   />
                 </div>
                 <div class="col-md-8">
                   <div class="card-body">
-                    <h5 class="card-title">{modalTempData?.titulo}</h5>
+                    <h5 class="card-title">{modalTempData?.title}</h5>
                     <p class="card-text">{modalTempData?.description}</p>
                     <p class="card-text">
                       <small class="text-muted">Last updated 3 mins ago</small>
@@ -309,7 +265,7 @@ export default function Feeds() {
             >
               Fechar
             </Button>
-            <Button color="red" appearance="primary" onClick={deleteLive}>
+            <Button color="red" appearance="primary" onClick={() => {}}>
               Deletar Live
             </Button>
           </Modal.Footer>
@@ -326,7 +282,7 @@ export default function Feeds() {
         <Drawer.Header>
           <Drawer.Title>
             <h3 class="display-8">
-              {userData?.title ? userData?.title : "Cadastrar Novo feed(s)"}{" "}
+              {userData?.title ? userData?.title : "  Novo SpotLight"}{" "}
               {userData?.lidernome}
             </h3>{" "}
           </Drawer.Title>
@@ -335,37 +291,18 @@ export default function Feeds() {
             <div className="row mt-1">
               <div className="form-group col-5">
                 <b className="h7 mb-35">
-                  <strong>Feed Titulo</strong>
+                  <strong>Titulo</strong>
                 </b>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Evento Nome"
+                  placeholder="titulo"
                   disabled={component.disable}
-                  value={newEventoData.titulo}
+                  value={spotlight.title}
                   onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
-                      titulo: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="form-group col-5">
-                <b className="h7 mb-35">
-                  <strong>Sub-Titulo</strong>
-                </b>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="local"
-                  disabled={component.disable}
-                  value={newEventoData.subTitulo}
-                  onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
-                      subTitulo: e.target.value,
+                    setSpotlight({
+                      ...spotlight,
+                      title: e.target.value,
                     })
                   }
                 />
@@ -373,17 +310,35 @@ export default function Feeds() {
 
               <div className="form-group col-5">
                 <b className="h7">
+                  <strong>Sub-Titulo</strong>
+                </b>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder=" subtitle    "
+                  disabled={component.disable}
+                  value={spotlight.subtitle}
+                  onChange={(e) =>
+                    setSpotlight({
+                      ...spotlight,
+                      subtitle: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="form-group col-5">
+                <b className="h7 mb-35">
                   <strong>Descrição</strong>
                 </b>
-                <textarea
+                <input
                   type="text"
-                  className="form-control "
-                  placeholder="Descrição"
-                  disabled={""}
-                  value={newEventoData.description}
+                  className="form-control"
+                  placeholder="titulo"
+                  disabled={component.disable}
+                  value={spotlight.description}
                   onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
+                    setSpotlight({
+                      ...spotlight,
                       description: e.target.value,
                     })
                   }
@@ -392,36 +347,37 @@ export default function Feeds() {
 
               <div className="form-group col-5">
                 <b className="h7">
-                  <strong>URL - Video You Tube</strong>
+                  <strong>Dia/Horário</strong>
                 </b>
                 <input
-                  type="text"
-                  className="form-control "
-                  placeholder="Descrição"
-                  disabled={""}
-                  value={newEventoData.urlYouTube}
+                  type="datetime-local"
+                  className="form-control"
+                  placeholder="Dia/Horário"
+                  disabled={component.disable}
+                  value={spotlight.horario}
                   onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
-                      urlYouTube: e.target.value,
+                    setSpotlight({
+                      ...spotlight,
+                      hour: e.target.value,
                     })
                   }
                 />
               </div>
 
-              <div className="form-group col-6">
+              <div className="form-group col-5">
                 <b className="h7">
-                  <strong> /id</strong>
+                  <strong>Telefone/WathsApp/Contato</strong>
                 </b>
                 <input
                   type="tel"
                   className="form-control"
-                  disabled={true}
-                  value={uid}
+                  placeholder="Telefone/WathsApp"
+                  disabled={component.disable}
+                  value={spotlight.telefone}
                   onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
-                      idEventosImages: e.target.value,
+                    setSpotlight({
+                      ...spotlight,
+                      contact: e.target.value,
                     })
                   }
                 />
@@ -432,21 +388,26 @@ export default function Feeds() {
                 style={{ alignItems: "center" }}
               >
                 <b className="h7">
-                  <h4>Banner Feeds</h4>
+                  <h4>Banner Principal</h4>
                 </b>
-                <input
-                  type="file"
-                  onChange={handlerEventoBanner}
-                  placeholder="Selecione Avatar"
-                />
-                <br />
 
-                <img
-                  key="o"
-                  style={{ width: 160, height: 160, borderRadius: 10 }}
-                  src={preview || ""}
-                />
+                <Uploader
+                  autoUpload={false}
+                  listType="picture"
+                  onChange={(files) => {
+                    const arquivos = files
+                      .filter((f) => f.blobFile)
+                      .map((f) => f.blobFile);
+
+                    setImageSpotLight(arquivos);
+
+                    console.log(imagesSpotLight);
+                  }}
+                  onRemove={(f) => console.log(f)}
+                ></Uploader>
               </div>
+
+              <br />
               <br />
             </div>
 
@@ -461,7 +422,7 @@ export default function Feeds() {
             >
               {loading ? (
                 <Progress.Line
-                  percent={progressUpload}
+                  percent={progressUpload.toFixed(0)}
                   showInfo={component?.title}
                   strokeColor="blue"
                 />
@@ -476,59 +437,63 @@ export default function Feeds() {
       <div className="row">
         <div className="col-12">
           <div className="w-100 d-flex justify-content-between ">
-            <h2>Feeds</h2>
+            <h2>SpotLight - Destaques</h2>
 
             <button
               className="btn btn-primary btn-lg"
               onClick={() => {
-                showDrawer(component, "Cadastrar Novo Evento");
+                showDrawer(component, "  Novo SpotLight");
               }}
             >
-              Cadastrar Novo Feeds
+              Novo SpotLight
             </button>
           </div>
 
           <table className="table table-hover">
             <thead>
               <tr>
-                <th scope="col">Banner Feeds</th>
+                <th scope="col">Banner</th>
                 <th scope="col">Titulo</th>
                 <th scope="col">Sub-Titulo</th>
-
-                <th scope="col">Editar</th>
+                <th scope="col">Descrição</th>
               </tr>
             </thead>
 
             {!loading ? (
-              <tbody>
-                {listEvents.map((list) => (
+              <tbody class="overflow-auto">
+                {listLider?.map((lider) => (
                   <tr>
                     <th scope="row">
-                      <Avatar circle src={list.avatarUrl} alt="@" size="lg" />
+                      <Avatar src={lider?.banner} alt="@" size="lg" />
                     </th>
 
-                    <td onClick={() => modalParseData(list)}>{list?.titulo}</td>
-                    <td onClick={() => modalParseData(list)}>
-                      {list?.subTitulo}
+                    <td onClick={() => showModalData(lider)}>
+                      {stringToAlt(lider?.title)}
+                    </td>
+                    <td onClick={() => showModalData(lider)}>
+                      {stringToAlt(lider?.subtitle)}
+                    </td>
+                    <td onClick={() => showModalData(lider)}>
+                      {stringToAlt(lider?.description)}
                     </td>
 
                     <td>
                       <Button
+                        onClick={showModalData}
                         color="green"
                         appearance="primary"
-                        onClick={() => modalParseData(list)}
                       >
-                        Editar
+                        Detalhes
                       </Button>{" "}
-                      <a>
-                        <Button
-                          color="red"
-                          appearance="primary"
-                          onClick={() => modalParseData(list)}
-                        >
-                          Deletar
-                        </Button>
-                      </a>
+                      <Button
+                        color="red"
+                        appearance="primary"
+                        onClick={() => {
+                          deleteSpotLight(lider.id, lider?.banner);
+                        }}
+                      >
+                        Deletar
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -545,7 +510,7 @@ export default function Feeds() {
               </div>
             </div>
           ) : (
-            listEvents.length <= 0 && (
+            listLider.length <= 0 && (
               <div className="text-center mt-100">
                 <div className="text-center" role="status">
                   <text>Nenhum dado encontrado</text>
@@ -554,6 +519,23 @@ export default function Feeds() {
             )
           )}
         </div>
+        {/* <div className='row'>
+                    <div className='col-sm-6'>
+
+
+
+                        <div className="card"  >
+                            <img className="card-img-top" src="https://firebasestorage.googleapis.com/v0/b/nossacasa-4d613.appspot.com/o/celulas-images%2F2092ef3f-0241-4955-893c-dd35c4c99411%2F464d2aff-a479-4899-af34-1df02cd74f86?alt=media&token=3d3c7793-e6ee-482e-aaee-cbe6ebca4ed0" alt="Card image cap" style={{ width: 150, height: 150 }} />
+                            <div className="card-body">
+                                <p className="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                            </div>
+                        </div>
+                        <br />
+
+
+                    </div>
+
+                </div> */}
       </div>
       <ToastContainer />
     </div>

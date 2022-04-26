@@ -5,11 +5,14 @@ export default function Header() {
   const { exit } = useContext(AuthContext);
 
   return (
-    <header className="container-fluid d-flex justify-content-end">
+    <header
+      className="container-fluid d-flex justify-content-end"
+      onClick={() => exit()}
+    >
       <div className=" d-flex align-items-center">
         <div className="text-right mr-3">
           <span className="d-block m-0 p-0 text-white">Igreja Tal </span>
-          <small className="d-block m-0 p-0 text-white ">Gold</small>
+          <small className="d-block m-0 p-0 text-white ">Sair</small>
         </div>
 
         <a onClick={exit}>

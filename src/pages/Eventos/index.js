@@ -5,6 +5,7 @@ import { initializeApp } from "firebase/app";
 import {
   collection,
   addDoc,
+  deleteDoc,
   getFirestore,
   getDocs,
   doc,
@@ -79,7 +80,7 @@ export default function Eventos() {
     local: "",
     horario: "",
 
-    idEventosImages: uid,
+    id: uid,
     imagesEventos: [],
   });
 
@@ -88,10 +89,6 @@ export default function Eventos() {
 
     const app = initializeApp(firebaseConfig);
     const liderColection = collection(getFirestore(), "eventos");
-
-    toast.success("Success Notification !", {
-      position: toast.POSITION.TOP_CENTER,
-    });
 
     const getEvents = async () => {
       const data = await getDocs(liderColection);
@@ -115,56 +112,27 @@ export default function Eventos() {
     return subst;
   }
 
-  function show(data) {
-    setOpenModal(true);
-  }
-
   function showDrawer(data, title) {
     setOpenDrawer(true);
     setUserData({ ...data, title: title });
   }
 
-  const handlerEventoBanner = (e) => {
-    var reader = new FileReader();
+  const notify = (type, message) => {
+    setOpenDrawer(false);
+    setOpenModal(false);
+    switch (type) {
+      case "success":
+        return toast.success(message, {
+          position: toast.POSITION.TOP_LEFT,
+        });
+      case "error":
+        toast.error(message, {
+          position: toast.POSITION.TOP_LEFT,
+        });
 
-    // reader.onload = () => {
-    //     if (reader.readyState === 2) {
-    //         setPreview(reader.result)
-
-    //     }
-    //     reader.readAsDataURL(e.target.files[0])
-    // }
-
-    for (let i = 0; i < e.target.files.length; i++) {
-      const newImage = e.target.files[i];
-      newImage["id"] = Math.random();
-      setLiderAvatar((prevState) => [...prevState, newImage]);
+      default:
+        break;
     }
-  };
-
-  const notify = () => {
-    toast("Default Notification !");
-
-    toast.success("Success Notification !", {
-      position: toast.POSITION.TOP_CENTER,
-    });
-
-    toast.error("Error Notification !", {
-      position: toast.POSITION.TOP_LEFT,
-    });
-
-    toast.warn("Warning Notification !", {
-      position: toast.POSITION.BOTTOM_LEFT,
-    });
-
-    toast.info("Info Notification !", {
-      position: toast.POSITION.BOTTOM_CENTER,
-    });
-
-    toast("Custom Style Notification with css class!", {
-      position: toast.POSITION.BOTTOM_RIGHT,
-      className: "foo-bar",
-    });
   };
 
   const handleUpload = async () => {
@@ -173,19 +141,13 @@ export default function Eventos() {
     const storage = getStorage();
 
     const promisesAvatar = [];
-    const promisescelulasImage = [];
-
-    const metadata = {
-      contentType: "image/jpeg",
-    };
-    const listurlcelular = [];
 
     // INCIANDO UPLOAD IMAGENS DOS EVENTOS
 
     liderAvatar.map((image) => {
       const storageRefEventos = ref(
         storage,
-        `eventos-images/${newEventoData.idEventosImages}/${uuid()}`
+        `eventos-images/${newEventoData.id}/${uuid()}`
       );
       const uploadTaskLiderAvatar = uploadBytesResumable(
         storageRefEventos,
@@ -203,8 +165,6 @@ export default function Eventos() {
           console.log(
             " INCIANDO UPLOAD IMAGENS DOS EVENTOS " + progress + "% done"
           );
-
-          notify();
         },
 
         (error) => {
@@ -215,25 +175,19 @@ export default function Eventos() {
           getDownloadURL(uploadTaskLiderAvatar.snapshot.ref)
             .then((downloadURL) => {
               setOpenDrawer(false);
-              toast.success("Wow so easy !", {
-                position: toast.POSITION.TOP_LEFT,
-              });
+              notify("success", "Wow....");
 
-              const user = doc(
-                getFirestore(),
-                "eventos/",
-                newEventoData.idEventosImages
-              );
+              const user = doc(getFirestore(), "eventos/", newEventoData.id);
 
               setDoc(
-                doc(getFirestore(), "eventos", newEventoData.idEventosImages),
+                doc(getFirestore(), "eventos", newEventoData.id),
                 newEventoData
               );
 
               const frankDocRef = doc(
                 getFirestore(),
                 "eventos",
-                newEventoData.idEventosImages
+                newEventoData.id
               );
               updateDoc(frankDocRef, {
                 avatarUrl: downloadURL,
@@ -264,6 +218,33 @@ export default function Eventos() {
       .catch((err) => console.log(err));
   };
 
+  const handleDelete = async (id) => {
+    // [START delete_document]
+
+    console.log(id);
+
+    deleteDoc(doc(getFirestore(), "eventos", id))
+      .then(() => {
+        handleOpen();
+        // handleDeleteStorage(data);
+
+        notify("success", "Tudo certo");
+        setLoadPage(!loadPage);
+      })
+      .catch(() => {
+        notify("error", "Wrong...");
+        setLoadPage(!loadPage);
+      });
+    // [END delete_document]
+  };
+
+  function previewFile(file, callback) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      callback(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
   const modalParseData = (list) => {
     setModalTempData(list);
     handleOpen();
@@ -311,7 +292,11 @@ export default function Eventos() {
             >
               Fechar
             </Button>
-            <Button color="red" appearance="primary" onClick={() => {}}>
+            <Button
+              color="red"
+              appearance="primary"
+              onClick={() => handleDelete(modalTempData?.id)}
+            >
               Deletar
             </Button>
           </Modal.Footer>
@@ -427,24 +412,6 @@ export default function Eventos() {
                 />
               </div>
 
-              <div className="form-group col-6">
-                <b className="h7">
-                  <strong> /id</strong>
-                </b>
-                <input
-                  type="tel"
-                  className="form-control"
-                  disabled={true}
-                  value={uid}
-                  onChange={(e) =>
-                    setNewEventoData({
-                      ...newEventoData,
-                      idEventosImages: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
               <div
                 className="form-group col-6 "
                 style={{ alignItems: "center" }}
@@ -452,18 +419,33 @@ export default function Eventos() {
                 <b className="h7">
                   <h4>Banner Evento</h4>
                 </b>
-                <input
+                {/* <input
                   type="file"
                   onChange={handlerEventoBanner}
                   placeholder="Selecione Avatar"
-                />
-                <br />
+                /> */}
+                <Uploader
+                  multiple
+                  autoUpload={false}
+                  listType="picture-text"
+                  onChange={(files) => {
+                    const arquivos = files
+                      .filter((f) => f.blobFile)
+                      .map((f) => f.blobFile);
 
-                <img
-                  key="o"
-                  style={{ width: 160, height: 160, borderRadius: 10 }}
-                  src={preview || ""}
-                />
+                    setLiderAvatar(arquivos);
+                    // setImageSpotLight(() => [...imagesSpotLight, arquivos]);
+                    // setImageSpotLight((prevState) => [arquivos[prevState]]);
+                    console.log(liderAvatar);
+                  }}
+                  onUpload={(file) => {
+                    setLoading(true);
+                    previewFile(file.blobFile, (value) => {
+                      setLiderAvatar(value);
+                    });
+                  }}
+                  onRemove={(f) => console.log(f)}
+                ></Uploader>
               </div>
               <br />
             </div>
@@ -523,7 +505,7 @@ export default function Eventos() {
                 {listEvents.map((list) => (
                   <tr>
                     <th scope="row">
-                      <Avatar circle src={list.avatarUrl} alt="@" size="lg" />
+                      <Avatar src={list.avatarUrl} alt="@" size="lg" />
                     </th>
 
                     <td onClick={() => modalParseData(list)}>
@@ -578,6 +560,7 @@ export default function Eventos() {
           )}
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

@@ -6,6 +6,8 @@ import Routes from "./routes";
 
 import store from "./store";
 
+import NewSignIn from "./routes/NewSignIn";
+
 import { AuthProvider, AuthContext } from "./context/auth";
 
 ReactDOM.render(

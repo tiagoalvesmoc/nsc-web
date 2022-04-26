@@ -10,7 +10,7 @@
 #root {
   height: 100%;
   width: 100%;
-  position: fixed;
+  position:  relative;
 }
 
 .bg-primary {
@@ -38,12 +38,13 @@ html {
 header {
   background-color: var(--dark);
   width: 10px;
+ 
 }
 
 .btn {
-  width: 250px;
+  width: 240px;
   height: 48px;
-  margin-bottom: 05 px;
+  margin-bottom: 05px;
 }
 
 header > div {
@@ -84,11 +85,14 @@ header small {
 
 sidebar {
   background-color: var(--dark);
+ 
+  
 }
 
 sidebar ul {
   margin: 0;
   padding: 0;
+ 
 }
 
 sidebar ul li {

@@ -3,7 +3,7 @@ import logo from "../../assets/logo2.png";
 
 const Sidebar = (props) => {
   return (
-    <sidebar class="col-2 h-100">
+    <sidebar className="col-2 h-100   overflow-auto  ">
       <img src={logo} className="img-fluid px-3 py-4" />
       <ul>
         <li>
@@ -43,7 +43,7 @@ const Sidebar = (props) => {
             }
           >
             <span className="mdi mdi-account-multiple"></span>
-            <text>Lider Célula</text>
+            <text>Células</text>
           </Link>
         </li>
 
@@ -87,6 +87,16 @@ const Sidebar = (props) => {
           >
             <span className="mdi mdi-coffee"></span>
             <text>Feeds</text>
+          </Link>
+        </li>
+
+        <li>
+          <Link
+            to="/spotlight"
+            className={props.location.pathname === "/spotlight" ? "active" : ""}
+          >
+            <span className="mdi mdi-spotlight"></span>
+            <text>SpotLight</text>
           </Link>
         </li>
       </ul>

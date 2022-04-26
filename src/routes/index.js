@@ -15,6 +15,7 @@ import Eventos from "../pages/Eventos";
 import Live from "../pages/Live";
 import YouTubeVideos from "../pages/YouTubeVideos";
 import Feeds from "../pages/Feeds";
+import SpotLight from "../pages/SpotLight";
 import SignIn from "./SignIn";
 
 const Routes = () => {
@@ -43,6 +44,7 @@ const Routes = () => {
                     component={YouTubeVideos}
                   />
                   <Route path="/feeds" exact component={Feeds} />
+                  <Route path="/SpotLight" exact component={SpotLight} />
                 </Switch>
               </Router>
             </div>

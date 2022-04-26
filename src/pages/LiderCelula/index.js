@@ -1,26 +1,28 @@
 import React, { useEffect, useState, useRef } from "react";
 import firebaseConfig from "../../context/config";
 import { initializeApp } from "firebase/app";
-import { getDatabase, onValue, set, child } from "firebase/database";
+import { stringToAlt } from "../../Utils";
+
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import {
-  collection,
   addDoc,
+  collection,
   getFirestore,
   getDocs,
   doc,
   updateDoc,
   arrayUnion,
-  arrayRemove,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import {
   getStorage,
-  uploadBytes,
   uploadBytesResumable,
   ref,
   getDownloadURL,
-  listAll,
-  list,
+  deleteObject,
 } from "firebase/storage";
 import { uuid } from "uuidv4";
 
@@ -30,9 +32,11 @@ import {
   Modal,
   Avatar,
   Uploader,
+  Loader,
   Progress,
   Notification,
 } from "rsuite";
+import { async } from "@firebase/util";
 
 export default function LiderCelula() {
   const message = (
@@ -41,13 +45,12 @@ export default function LiderCelula() {
       <Notification closable type="info" header="Informational"></Notification>
     </div>
   );
-  const [result, setResult] = useState(uuid());
+
   const [uid, setUid] = useState(uuid());
-  const [preview, setPreview] = useState({});
+
   const [imagesCelula, setImageCelulas] = useState([]);
   const [liderAvatar, setLiderAvatar] = useState([]);
-  const [urlsAvatar, setUrlsAvatar] = useState([]);
-  const [urlsCelulaFirebase, seturlsCelulaFirebase] = useState([]);
+
   const [listLider, setListLider] = useState([]);
   const [component, setComponents] = useState({
     disable: false,
@@ -56,7 +59,6 @@ export default function LiderCelula() {
   });
 
   const [progressUpload, setProgressUpload] = useState(0);
-  const [progresUploaCelulasImages, setprogresUploaCelulasImages] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [loadPage, setLoadPage] = useState(false);
@@ -68,11 +70,11 @@ export default function LiderCelula() {
   const [modalTempData, setModalTempData] = useState({});
   const [id, setId] = useState(uuid());
   const [newLiderData, setNewLiderData] = useState({
-    celulanome: "Gaditas",
-    lidernome: "Tiago Alves",
-    email: "tiagofarma39@gmail.com",
+    celulanome: "",
+    id: uid,
+    lidernome: "",
+    email: "",
     dia: "sexta-feira",
-    telefone: "38988116558",
     bairro: "monte carmelo",
     endereco: "rua 2, 33",
     horario: "19:00",
@@ -80,41 +82,27 @@ export default function LiderCelula() {
     idCelulasImages: uid,
     imagesCelulas: [],
     avatarUrl: "",
+
+    telefone: "",
+    linkInstagram: "",
+    linkWhatsApp: "",
+    linkFacebook: "",
   });
 
   useEffect(() => {
     setLoading(true);
 
-    const app = initializeApp(firebaseConfig);
-    const liderColection = collection(getFirestore(), "lider");
+    const liderColection = collection(getFirestore(), "celulas");
 
     const getLider = async () => {
       const data = await getDocs(liderColection);
       setListLider(data.docs.map((doc) => ({ ...doc.data() })));
-
+      console.log("Lider", listLider);
       setLoading(false);
     };
 
     getLider();
   }, [loadPage]);
-
-  const updateLider = () => {
-    console.log(newLiderData);
-
-    window.location.reload();
-  };
-
-  //function **********************************//
-
-  function stringToAlt(str) {
-    // //-> String Original.
-    // return str[0].toUpperCase() + str.substr(1);
-
-    var subst = str?.toLowerCase().replace(/(?:^|\s)\S/g, function (a) {
-      return a.toUpperCase();
-    });
-    return subst;
-  }
 
   function show(data) {
     setOpenModal(true);
@@ -128,34 +116,50 @@ export default function LiderCelula() {
     setUserData({ ...data, title: title });
   }
 
-  const handlerLiderAvatar = (e) => {
-    var reader = new FileReader();
+  const handleDelete = async (data) => {
+    // [START delete_document]
 
-    for (let i = 0; i < e.target.files.length; i++) {
-      const newImage = e.target.files[i];
-      newImage["id"] = Math.random();
-      setLiderAvatar((prevState) => [...prevState, newImage]);
-    }
+    console.log(id);
+
+    deleteDoc(doc(getFirestore(), "celulas", data.id))
+      .then(() => {
+        // handleDeleteStorage(data);
+
+        notify("success", "Tudo certo");
+      })
+      .catch(() => {
+        notify("error", "Ops..ocorreu um erro, tente novamente.");
+        setLoadPage(!loadPage);
+      });
+    // [END delete_document]
   };
 
-  const handlerCelulasImages = (e) => {
-    var reader = new FileReader();
+  // const handleDeleteStorage = async (data) => {
+  //   const deleteStorage = ref(
+  //     getStorage(),
+  //     `celulas-img/${data.id}/${data.avatarUrl}`
+  //   );
+  //   deleteObject(deleteStorage)
+  //     .then(() => {
+  //       setOpen(false);
+  //       notify("success", "Deletado");
+  //       setLoadPage(!loadPage);
+  //     })
 
-    // reader.onload = () => {
-    //     if (reader.readyState === 2) {
-    //         setPreview(reader.result)
+  //     .catch(() => {
+  //       setOpen(false);
+  //       notify("error", "Ops..ocorreu um erro, tente novamente.");
+  //       setLoadPage(!loadPage);
+  //     });
+  // };
 
-    //     }
-    //     reader.readAsDataURL(e.target.files[0])
-    // }
-
-    for (let i = 0; i < e.target.files.length; i++) {
-      const newImage = e.target.files[i];
-      newImage["id"] = Math.random();
-      setImageCelulas((prevState) => [...prevState, newImage]);
-      // setResult(reader.readAsDataURL(e.target.files[0]))
-    }
-  };
+  function previewFile(file, callback) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      callback(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
 
   const handleUpload = async () => {
     setLoading(true);
@@ -165,16 +169,11 @@ export default function LiderCelula() {
     const promisesAvatar = [];
     const promisescelulasImage = [];
 
-    const metadata = {
-      contentType: "image/jpeg",
-    };
-    const listurlcelular = [];
-
     //Subindo imagem avatar Lider
-    liderAvatar.map((image) => {
+    await liderAvatar.map((image) => {
       const storageRefLiderAvatar = ref(
         storage,
-        `lider-avatar/${newLiderData.idLideravatar}/${uuid()}`
+        `celulas-img/${newLiderData.id}/${uuid()}`
       );
       const uploadTaskLiderAvatar = uploadBytesResumable(
         storageRefLiderAvatar,
@@ -199,38 +198,21 @@ export default function LiderCelula() {
         () => {
           getDownloadURL(uploadTaskLiderAvatar.snapshot.ref)
             .then((downloadURL) => {
-              const user = doc(
-                getFirestore(),
-                "lider/",
-                newLiderData.idLideravatar
-              );
-              // updateDoc(user, {
-              //     imagesCelulas: arrayUnion("greater_virginia")
-              // });
-
-              // const frankDocRef = doc(getFirestore(), "users", "frank");
-              // updateDoc(frankDocRef, {
-              //     name: downloadURL,
-              //     favorites: { food: "Pizza", color: "Blue", subject: "recess" },
-              //     age: 12,
-              //     img: arrayUnion(downloadURL)
-              // });
+              doc(getFirestore(), "celulas/", newLiderData.id);
 
               setDoc(
-                doc(getFirestore(), "lider", newLiderData.idLideravatar),
+                doc(getFirestore(), "celulas/", newLiderData.id),
                 newLiderData
               );
 
-              const frankDocRef = doc(
-                getFirestore(),
-                "lider",
-                newLiderData.idLideravatar
-              );
-              updateDoc(frankDocRef, {
+              // const frankDocRef = doc(
+              //   getFirestore(),
+              //   "lider",
+              //   newLiderData.idLideravatar
+              // );
+              updateDoc(doc(getFirestore(), "celulas/", newLiderData.id), {
                 avatarUrl: downloadURL,
               });
-
-              setUrlsAvatar((prevState) => [...prevState, `${downloadURL}`]);
 
               setProgressUpload(0);
               setImageCelulas([]);
@@ -241,65 +223,58 @@ export default function LiderCelula() {
               // setLoadPage(!loadPage)
               return;
             });
+        }
+      );
+    });
+
+    await imagesCelula.map((image) => {
+      const storageRefCelulasImages = ref(
+        storage,
+        `celulas-img/${newLiderData.idCelulasImages}/${uuid()}`
+      );
+      const uploadTaskCelulasImages = uploadBytesResumable(
+        storageRefCelulasImages,
+        image
+      );
+      promisescelulasImage.push(uploadTaskCelulasImages);
+
+      uploadTaskCelulasImages.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgressUpload(progress);
+          setComponents({ ...component, title: "Uploading.." });
+          console.log("Upload Imagens Celula " + progress + "% done");
+        },
+        (err) => {
+          console.log(err);
+          alert(err);
+          return;
         },
 
-        //Subindo Imagens da celula
+        () => {
+          getDownloadURL(uploadTaskCelulasImages.snapshot.ref)
+            .then(async (celulasImgUrl) => {
+              // seturlsCelulaFirebase((prevState) => [...prevState, `${celulasImgUrl}`]);
+              // console.log('File available at', celulasImgUrl);
 
-        imagesCelula.map((image) => {
-          const storageRefCelulasImages = ref(
-            storage,
-            `celulas-images/${newLiderData.idCelulasImages}/${uuid()}`
-          );
-          const uploadTaskCelulasImages = uploadBytesResumable(
-            storageRefCelulasImages,
-            image
-          );
-          promisescelulasImage.push(uploadTaskCelulasImages);
-
-          uploadTaskCelulasImages.on(
-            "state_changed",
-            (snapshot) => {
-              const progress =
-                (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setProgressUpload(progress);
-              setComponents({ ...component, title: "Uploading.." });
-              console.log("Upload Imagens Celula " + progress + "% done");
-            },
-            (err) => {
-              console.log(err);
-              alert(err);
-              return;
-            },
-
-            () => {
-              getDownloadURL(uploadTaskCelulasImages.snapshot.ref)
-                .then(async (celulasImgUrl) => {
-                  // seturlsCelulaFirebase((prevState) => [...prevState, `${celulasImgUrl}`]);
-                  // console.log('File available at', celulasImgUrl);
-
-                  const frankDocRef = doc(
-                    getFirestore(),
-                    "lider",
-                    newLiderData.idLideravatar
-                  );
-                  updateDoc(frankDocRef, {
-                    imagesCelulas: arrayUnion(celulasImgUrl),
-                  })
-                    .then(() => {
-                      window.location.reload();
-                    })
-                    .catch((err) => {
-                      alert(err);
-                    });
+              updateDoc(doc(getFirestore(), "celulas/", newLiderData.id), {
+                imagesCelulas: arrayUnion(celulasImgUrl),
+              })
+                .then(() => {
+                  window.location.reload();
                 })
                 .catch((err) => {
-                  console.log(err);
-                  return;
-                  // setLoadPage(!loadPage)
+                  alert(err);
                 });
-            }
-          );
-        })
+            })
+            .catch((err) => {
+              console.log(err);
+              return;
+              // setLoadPage(!loadPage)
+            });
+        }
       );
     });
 
@@ -330,33 +305,41 @@ export default function LiderCelula() {
     // setLoadPage(!loadPage)
   };
 
-  const sendFirestoreNewliderData = async () => {
-    setLoading(true);
-    const dbFirestore = getFirestore();
-
-    await addDoc(collection(dbFirestore, "lider"), newLiderData)
-      .then(() => {
-        setComponents({
-          loading: false,
-          disable: false,
+  const notify = (type, message) => {
+    setOpenDrawer(false);
+    setOpenModal(false);
+    switch (type) {
+      case "success":
+        return toast.success(message, {
+          position: toast.POSITION.TOP_LEFT,
+        });
+      case "error":
+        toast.error(message, {
+          position: toast.POSITION.TOP_LEFT,
         });
 
-        setOpenDrawer(false);
-        localStorage.setItem("@uuid", uuid());
-        window.location.reload();
-        setLoadPage(!loadPage);
-      })
-      .catch((err) => {
-        alert(err);
-      });
+      default:
+        break;
+    }
+  };
+
+  const modalOpen = (data) => {
+    setOpen(true);
+    setModalTempData(data);
   };
 
   return (
     <div className="col p-5 overflow-auto h-100">
       <div className="modal-container">
-        <Modal full show={open} onClose={handleClose} onHide={handleOpen}>
+        <Modal
+          full
+          show={open}
+          onClose={handleClose}
+          onHide={handleOpen}
+          size="lg"
+        >
           <Modal.Header>
-            <Modal.Title>Live Details</Modal.Title>
+            <Modal.Title>Celulas Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div class="card mb-3" style={{ maxWidth: 540 }}>
@@ -364,15 +347,15 @@ export default function LiderCelula() {
                 <div class="col-md-4">
                   <img
                     style={{ width: 540, height: 150 }}
-                    src="https://i1.ytimg.com/vi/qz9ftctJ94c/mqdefault.jpg"
+                    src={modalTempData?.avatarUrl}
                     class="img-fluid rounded-start"
                     alt="..."
                   />
                 </div>
                 <div class="col-md-8">
                   <div class="card-body">
-                    <h5 class="card-title">{modalTempData?.title}</h5>
-                    <p class="card-text">{modalTempData?.description}</p>
+                    <h5 class="card-title">{modalTempData?.celulanome}</h5>
+                    <p class="card-text">{modalTempData?.bairro}</p>
                     <p class="card-text">
                       <small class="text-muted">Last updated 3 mins ago</small>
                     </p>
@@ -389,8 +372,12 @@ export default function LiderCelula() {
             >
               Fechar
             </Button>
-            <Button color="red" appearance="primary" onClick={() => {}}>
-              Deletar Live
+            <Button
+              color="red"
+              appearance="primary"
+              onClick={() => handleDelete(modalTempData?.id)}
+            >
+              Deletar
             </Button>
           </Modal.Footer>
         </Modal>
@@ -406,7 +393,7 @@ export default function LiderCelula() {
         <Drawer.Header>
           <Drawer.Title>
             <h3 class="display-8">
-              {userData?.title ? userData?.title : "Cadastrar Novo Lider"}{" "}
+              {userData?.title ? userData?.title : "Cadastrar Novo(a) Célula"}{" "}
               {userData?.lidernome}
             </h3>{" "}
           </Drawer.Title>
@@ -521,70 +508,72 @@ export default function LiderCelula() {
               </div>
               <div className="form-group col-5">
                 <b className="h7">
-                  <strong> /id</strong>
+                  <strong>linkInstagram</strong>
                 </b>
                 <input
                   type="tel"
                   className="form-control"
-                  disabled={true}
-                  value={uid}
+                  placeholder="instagram url"
+                  disabled={component.disable}
+                  value={newLiderData.linkInstagram}
                   onChange={(e) =>
                     setNewLiderData({
                       ...newLiderData,
-                      idLideravatar: e.target.value,
-                    })
-                  }
-                  onClick={(e) =>
-                    setNewLiderData({
-                      ...newLiderData,
-                      idLideravatar: e.target.value,
+                      linkInstagram: e.target.value,
                     })
                   }
                 />
               </div>
-              <div className="form-group col-6">
+              <div className="form-group col-5">
                 <b className="h7">
-                  <strong> /id</strong>
+                  <strong>link WhatsApp</strong>
                 </b>
                 <input
                   type="tel"
                   className="form-control"
-                  disabled={true}
-                  value={uid}
+                  placeholder="whatsapp url"
+                  disabled={component.disable}
+                  value={newLiderData.linkWhatsApp}
                   onChange={(e) =>
                     setNewLiderData({
                       ...newLiderData,
-                      idCelulasImages: e.target.value,
-                    })
-                  }
-                  onClick={(e) =>
-                    setNewLiderData({
-                      ...newLiderData,
-                      idCelulasImages: e.target.value,
+                      linkWhatsApp: e.target.value,
                     })
                   }
                 />
               </div>
 
               <div
-                className="form-group col-6 "
+                className="form-group col-8 "
                 style={{ alignItems: "center" }}
               >
                 <b className="h7">
-                  <h4>Foto perfil Lider</h4>
+                  <h4>Foto perfil Lider/Banner</h4>
                 </b>
-                <input
-                  type="file"
-                  onChange={handlerLiderAvatar}
-                  placeholder="Selecione Avatar"
-                />
-                <br />
 
-                <img
-                  key="o"
-                  style={{ width: 160, height: 160, borderRadius: 10 }}
-                  src={preview || ""}
-                />
+                <Uploader
+                  multiple={false}
+                  autoUpload={false}
+                  listType="picture-text"
+                  onChange={(files) => {
+                    const arquivos = files
+                      .filter((f) => f.blobFile)
+                      .map((f) => f.blobFile);
+
+                    setLiderAvatar(arquivos);
+                    // setImageSpotLight(() => [...imagesSpotLight, arquivos]);
+                    // setImageSpotLight((prevState) => [arquivos[prevState]]);
+                    console.log(liderAvatar);
+                  }}
+                  onUpload={(file) => {
+                    setLoading(true);
+                    previewFile(file.blobFile, (value) => {
+                      setLiderAvatar(value);
+                    });
+                  }}
+                  onRemove={(f) => console.log(f)}
+                ></Uploader>
+                <br />
               </div>
 
               <div
@@ -594,20 +583,42 @@ export default function LiderCelula() {
                 <b className="h7">
                   <h4>Fotos Celulas</h4>
                 </b>
-                <input
+                {/* <input
                   type="file"
                   multiple
                   onChange={handlerCelulasImages}
                   placeholder="Selecionar Fotos"
                   src={result}
-                />
-                <br />
+                /> */}
 
-                <img
+                {/* <img
                   key="o"
                   style={{ width: 160, height: 160, borderRadius: 10 }}
                   src={preview}
-                />
+                /> */}
+
+                <Uploader
+                  multiple
+                  autoUpload={false}
+                  listType="picture-text"
+                  onChange={(files) => {
+                    const arquivos = files
+                      .filter((f) => f.blobFile)
+                      .map((f) => f.blobFile);
+
+                    setImageCelulas(arquivos);
+                    // setImageSpotLight(() => [...imagesSpotLight, arquivos]);
+                    // setImageSpotLight((prevState) => [arquivos[prevState]]);
+                    console.log(liderAvatar);
+                  }}
+                  onUpload={(file) => {
+                    setLoading(true);
+                    previewFile(file.blobFile, (value) => {
+                      setImageCelulas(value);
+                    });
+                  }}
+                  onRemove={(f) => console.log(f)}
+                ></Uploader>
               </div>
 
               <br />
@@ -640,12 +651,12 @@ export default function LiderCelula() {
       <div className="row">
         <div className="col-12">
           <div className="w-100 d-flex justify-content-between ">
-            <h2>Lider Célula</h2>
+            <h2>Células</h2>
 
             <button
               className="btn btn-primary btn-lg"
               onClick={() => {
-                showDrawer(component, "Cadastrar Novo Lider");
+                showDrawer(component, "Cadastrar Novo(a) Célula");
               }}
             >
               Cadastrar Novo Lider
@@ -671,7 +682,7 @@ export default function LiderCelula() {
                 {listLider?.map((lider) => (
                   <tr>
                     <th scope="row">
-                      <Avatar circle src={lider.avatarUrl} alt="@" size="lg" />
+                      <Avatar src={lider.avatarUrl} alt="@" size="lg" />
                     </th>
 
                     <td onClick={() => show()}>
@@ -685,22 +696,22 @@ export default function LiderCelula() {
                     <td onClick={() => show()}>{lider?.endereco}</td>
                     <td onClick={() => show()}>{lider?.horario}</td>
 
-                    <td onClick={() => showDrawer()}>
+                    <td>
                       <Button
-                        onClick={() => {}}
+                        onClick={() => modalOpen(lider)}
                         color="green"
                         appearance="primary"
                       >
-                        Fechar
+                        edit
                       </Button>{" "}
                       <Button
                         color="red"
                         appearance="primary"
                         onClick={() => {
-                          setModalTempData(lider);
+                          handleDelete(lider);
                         }}
                       >
-                        Deletar Live
+                        Deletar
                       </Button>
                     </td>
                   </tr>
@@ -745,6 +756,8 @@ export default function LiderCelula() {
 
                 </div> */}
       </div>
+
+      <ToastContainer />
     </div>
   );
 }
